@@ -1,0 +1,7 @@
+This python code simulates collisions in trep.
+
+trep is a python package for mechanical simulation available at:
+https://code.google.com/p/trep/
+
+To install trep_collisions, simply run:
+$ sudo python setup.py install
