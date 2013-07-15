@@ -15,7 +15,7 @@ except:
 class CircleConstraint(trep.Constraint):
     """ The actual constraint to be added once the mass is on the surface. """
     def __init__(self, system, Y, Z, R, frame):
-        trep.Constraint.__init__(self,system,name='constraint_' + frame.name )
+        trep.Constraint.__init__(self, system, name='constraint_' + frame.name )
         self.Y = Y
         self.Z = Z
         self.R = R
@@ -49,7 +49,6 @@ class Circle:
     """ Defines a circular boundary in the plane. This function will give the value of
         phi without actually constraining the system. """    
     def __init__(self, system, Y, Z, R, tolerance=1e-10):
-        self.tolerance = 1e-10
         self.Y = Y
         self.Z = Z
         self.R = R

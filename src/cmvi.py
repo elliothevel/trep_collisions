@@ -7,7 +7,7 @@ from release import *
 class CollisionMVI(trep.MidpointVI):
     """ This is a midpoint variational integrator + collision solver. """
 
-    def __init__(self, system, surface, impact_frames=None, tolerance=1e-10, root_solve=False):
+    def __init__(self, system, surface, impact_frames=None, tolerance=1e-10, root_solve=False, cor=0):
         trep.MidpointVI.__init__(self, system, tolerance=tolerance)
         self.constrained_frames = []
         self.surface = surface
@@ -22,6 +22,9 @@ class CollisionMVI(trep.MidpointVI):
         #   By default it is turned off, meaning the time of release is mvi.t1 when lambda
         #   changes sign.
         self.root_solve_release = root_solve
+
+        # Coefficient of restitution for impact.
+        self.cor = cor
 
 
     def initialize_names(self):

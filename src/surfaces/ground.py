@@ -55,7 +55,7 @@ class GroundConstraint(trep.constraints.PointOnPlane):
     
 
 class Ground:
-    """ A common collision surface. This is a line along z=0.  """ 
+    """ A common collision surface. This is a plane at z=0.  """ 
     def __init__(self, system, tolerance=1e-10, dim=2, lims=(-3,3)):
         self.system = system
         self.frame = None
