@@ -3,3 +3,5 @@
 *.py[cod]
 *.swp
 /build
+.stl
+.bled

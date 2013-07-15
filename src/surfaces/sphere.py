@@ -62,7 +62,7 @@ class Sphere:
         self.frame = None 
 
     def set_frame(self, frame):
-	    """ Updates the node and frame that contacts the surface. """
+        """ Updates the node and frame that contacts the surface. """
         self.frame = self.system.get_frame(frame)
 
     def phi(self):
