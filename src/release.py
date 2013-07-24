@@ -151,7 +151,7 @@ def remove_constraint_from_list(mvi, old_frame):
     mvi.constrained_frames = [f for f in mvi.constrained_frames if not (f == old_frame)]
 
 
-def release_update(mvi, frames, t, q, p, lam0):
+def release_update(mvi, frames, t, q, p, lam0, stepafter=True):
     """ Given a state at the point of release, this function removes the constraint from the
         system and intagrates to the next time step. """
 
@@ -175,5 +175,6 @@ def release_update(mvi, frames, t, q, p, lam0):
 
     # Remove the constraint and simulate to the end of the current timestep. 
     mvi.constrained_frames = [f for f in mvi.constrained_frames if (f not in frames)]
-    if mvi.t_end != mvi.t2:
-        mvi.step(mvi.t_end, k2=q2[mvi.nd:])
+    if stepafter:
+        if mvi.t_end != mvi.t2:
+            mvi.step(mvi.t_end, k2=q2[mvi.nd:])

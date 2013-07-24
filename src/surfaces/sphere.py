@@ -23,18 +23,19 @@ class SphereConstraint(trep.Constraint):
         self.frame = frame
 
     def h(self):
-        x, y, z = self.frame.p()
+        x, y, z = self.frame.p()[:-1]
         return (x-self.X)**2 + (y-self.Y)**2 + (z-self.Z)**2 - self.R**2
 
     def h_dq(self,q_i):
-        x, y, z = self.frame.p() 
-        dx, dy, dz = self.frame.p_dq(q_i)
+        x, y, z = self.frame.p()[:-1] 
+        dx, dy, dz = self.frame.p_dq(q_i)[:-1]
         return 2*(x-self.X)*dx + 2*(y-self.Y)*dy + 2*(z-self.Z)*dz
 
     if _opengl:
         def opengl_draw(self):
             """ Draw a simple sphere. """
             glPushAttrib(GL_CURRENT_BIT | GL_LIGHTING_BIT | GL_LINE_BIT)
+            glColor3f(255/255.0, 0/255.0, 0/255.0)
             subdivisions = 50
             color = [1,0,0,1]
             quad = gluNewQuadric()
@@ -66,12 +67,12 @@ class Sphere:
         self.frame = self.system.get_frame(frame)
 
     def phi(self):
-        x, y, z = self.frame.p()
+        x, y, z = self.frame.p()[:-1]
         return (x-self.X)**2 + (y-self.Y)**2 + (z-self.Z)**2 - self.R**2
 
     def phi_dq(self,q_i):
-        x, y, z = self.frame.p()
-        dx, dy, dz = self.frame.p_dq(q_i)
+        x, y, z = self.frame.p()[:-1]
+        dx, dy, dz = self.frame.p_dq(q_i)[:-1]
         return 2*(x-self.X)*dx + 2*(y-self.Y)*dy + 2*(z-self.Z)*dz    
                 
     def add_constraint_to_system(self, frame):

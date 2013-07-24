@@ -20,6 +20,10 @@ class CosineConstraint(trep.Constraint):
         self.freq = freq
         self.frame = frame
 
+    def __repr__(self):
+        return "<CosineConstraint %s amp=%f freq=%f>" %(
+                self.frame.name, self.amp, self.freq)
+
     def h(self):
         y, z = self.frame.p()[1:3]
         return z-self.amp*np.cos(self.freq*y)
@@ -54,7 +58,7 @@ class Cosine:
         self.tolerance = tolerance
 
     def __repr__(self):
-        return '<CosineSurface: freq=%s, amp=%s>' %(self.freq, self.amp)    
+        return '<CosineSurface freq=%s, amp=%s>' %(self.freq, self.amp)    
 
     def set_frame(self,node_name):
         self.frame = self.system.get_frame(node_name)

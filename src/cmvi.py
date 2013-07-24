@@ -7,7 +7,8 @@ from release import *
 class CollisionMVI(trep.MidpointVI):
     """ This is a midpoint variational integrator + collision solver. """
 
-    def __init__(self, system, surface, impact_frames=None, tolerance=1e-10, root_solve=False, cor=0):
+    def __init__(self, system, surface, impact_frames=None, tolerance=1e-10, 
+                       root_solve=False, cor=0, energy_threshold=0.0):
         trep.MidpointVI.__init__(self, system, tolerance=tolerance)
         self.constrained_frames = []
         self.surface = surface
@@ -26,6 +27,9 @@ class CollisionMVI(trep.MidpointVI):
         # Coefficient of restitution for impact.
         self.cor = cor
 
+        # Threshold for treating elastic impacts as plastic.
+        self.energy_threshold = energy_threshold
+
 
     def initialize_names(self):
         """ Creates unique names for all frames that don't already have one. """ 
@@ -37,7 +41,7 @@ class CollisionMVI(trep.MidpointVI):
                 
 
     def initialize_state(self, t1, q1, p1, lambda0=None, lambda1=None):
-        """ Call's trep's built in initializer and also sets state 1. """
+        """ Call's trep's built in initializer and also sets state 0. """
         self.initialize_from_state(t1, q1, p1, lambda1=lambda1)
         self.lambda0 = lambda0
         self.t0 = t1
@@ -118,4 +122,4 @@ class CollisionMVI(trep.MidpointVI):
         """ Should be called before visualizing system. It will draw the constraint(s)
             even if there are no constrained frames at the end of the simulation. """
         if len(self.constrained_frames) == 0:
-            self.surface.add_constraint_to_system(self.system.world_frame)                                
+            self.surface.add_constraint_to_system(self.system.world_frame)  

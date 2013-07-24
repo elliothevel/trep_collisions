@@ -11,15 +11,14 @@ ball.import_frames([ty('y'), [tz('z', mass=1.0)]])
 trep.potentials.Gravity(ball)
 
 # Create the surface.
-#surface = tc.surfaces.Cosine(ball, 1, 1)
-surface = tc.surfaces.Ground(ball)
+surface = tc.surfaces.Cosine(ball, 1, 1)
 
 # Initialize the integrator.
 mvi = tc.CollisionMVI(ball, surface)
 
 # Give the initial condition.
-ball.get_config('z').q = 3.0
-ball.get_config('y').q = 0.0
+ball.get_config('z').q = 7.0
+ball.get_config('y').q = 0.5
 mvi.initialize_state(0.0, ball.q, tc.util.D2L2(mvi))
 
 # Simulate.

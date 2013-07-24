@@ -4,6 +4,7 @@ import scipy
 import scipy.optimize
 from detect import *
 from util import *
+from release import *
 
 
 def linear_interpolate_impact(mvi):
@@ -267,14 +268,52 @@ def impact_update(mvi, impact_frame, t, q, p, lam0, lam1):
      
     # Set system config to impact config. Solve impact update.
     mvi.t2, mvi.q2, mvi.p2, mvi.lambda0, mvi.lambda1 = t, q, p, lam0, lam1
-    mvi.surface.set_frame(impact_frame)
+    mvi.surface.set_frame(impact_frame) 
+       
+    # Here we need to make sure no constraints are released in the process of the impact update.
+    # If there are, we need to deal with them here because solving them later will use a regular
+    # integrator step instead of the impact map.
+    # Right now this doesn't work with the root solver because solving the release time would involve
+    # minimizing over a changing set of contraints.
 
-    # Perfectly inelastic.
-    if mvi.cor == 0:
-        next_state = plastic_impact(mvi)
-        state = save_state(mvi)
+    while True:
+        treat_as_plastic = False
 
-        # Add the constraint to the system.
+        if mvi.cor == 0:
+            next_state = plastic_impact(mvi)          
+
+        elif mvi.cor == 1:
+            elastic_impact(mvi, 0.0)
+    
+        else:    
+            next_state = plastic_impact(mvi)
+            Ec_prime = mvi.cor*next_state['Ec']
+        
+            mvi.set_single_state(2, mvi.t1, mvi.q1, mvi.p1)
+            mvi.set_single_state(1, mvi.t0, mvi.q0, mvi.p0)
+            mvi.lambda1 = mvi.lambda0
+
+            # At this point we check if the energy lost is 
+            # small enough to treat the impact as plastic.
+            if Ec_prime < mvi.energy_threshold:
+                next_state = plastic_impact(mvi)
+                treat_as_plastic = True
+            else:    
+                elastic_impact(mvi, Ec_prime)  
+
+        release_check = detect_releases(mvi)
+
+        if not release_check:
+            break
+
+        else:
+            release_update(mvi, release_check, mvi.t1, mvi.q1, mvi.p1, mvi.lambda0, stepafter=False)
+
+
+     # Perfectly inelastic, add constraint to system.
+    if (mvi.cor == 0) or treat_as_plastic:
+        state = save_state(mvi)                
+
         mvi.constrained_frames.append(impact_frame)
         mvi.surface.add_constraint_to_system(impact_frame)
 
@@ -282,22 +321,4 @@ def impact_update(mvi, impact_frame, t, q, p, lam0, lam1):
         #   current state. 
         restore_state(mvi, state)
         mvi.lambda0 = np.append(mvi.lambda0, [0.0]) 
-        mvi.lambda1 = np.append(next_state['lambda1'], next_state['lambdac']) 
-
-    # Perfectly elastic.
-    elif mvi.cor == 1:
-        elastic_impact(mvi, 0.0)
-    
-    # CoR between 0 and 1; need to solve twice.
-    else:    
-        next_state = plastic_impact(mvi)
-        Ec_prime = mvi.cor*next_state['Ec']
-        
-        # At this point it might be nice to check if the energy lost is 
-        # small enough to treat the impact as plastic.
-
-        mvi.set_single_state(2, mvi.t1, mvi.q1, mvi.p1)
-        mvi.set_single_state(1, mvi.t0, mvi.q0, mvi.p0)
-        mvi.lambda1 = mvi.lambda0
-
-        elastic_impact(mvi, Ec_prime)              
+        mvi.lambda1 = np.append(next_state['lambda1'], next_state['lambdac'])              

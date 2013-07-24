@@ -21,6 +21,10 @@ class CircleConstraint(trep.Constraint):
         self.R = R
         self.frame = frame
 
+    def __repr__(self):
+        return "<CircleConstraint %s Y=%f Z=%f R=%f>" %(
+                self.frame.name, self.Y, self.Z, self.R)
+
     def h(self):
         y, z = self.frame.p()[1:3]
         return (y-self.Y)**2 + (z-self.Z)**2 - self.R**2

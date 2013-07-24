@@ -7,17 +7,18 @@ class PuppetMVI(tc.CollisionMVI):
         that also handles puppet strings. 
     """
 
-    def __init__(self, system, surface, impact_frames=None, puppet_strings=[], tolerance=1e-10, cor=0.0):
+    def __init__(self, system, surface, impact_frames=None, puppet_strings=[], tolerance=1e-10):
         tc.CollisionMVI.__init__(self, system, surface, impact_frames, 
                                  tolerance=tolerance, root_solve=False, cor=0.0)
 
         self.puppet_strings = puppet_strings
-            
+          
         if impact_frames is None:
             self.impact_frames = system.masses
         else:
             self.impact_frames = impact_frames  
               
+
     def step_(self, t2, k2=tuple(), max_iterations=200, q2_hint=None,
               lambda1_hint=None, verbose=False):
         """ Steps the system from t1 --> t2. """
@@ -41,14 +42,15 @@ class PuppetMVI(tc.CollisionMVI):
         while True:
 
             # Check if any events have occurred.
-            impact_frames   = detect_impacts(self)
-            release_frames  = detect_releases(self)
-            catch_strings   = detect_string_cathces(self)
+            impact_frames   = tc.detect.detect_impacts(self)
+            release_frames  = tc.detect.detect_releases(self)
+            catch_strings   = detect_string_catches(self)
             release_strings = detect_string_releases(self)
 
             # Case 1: no events, return with the current state.
             if  ((not release_frames) and (not impact_frames)
                  and (not catch_strings) and (not release_strings)):
+                print self.lambda1
                 return    
 
             # Case 2: One or more releases.    
@@ -56,25 +58,48 @@ class PuppetMVI(tc.CollisionMVI):
             # For the PuppetMVI, release root-solving is turned off. This means all releases will
             # occur at t1. Thus, if we have any releases, handle them first.
             if (release_frames or release_strings):
+                print 'release',#, release_frames, release_strings
+                if release_frames:
+                    print 'frames', release_frames,
+                if release_strings:
+                    print 'strings',
+                print 
+                print self.lambda1, self.t1
                 release_update_with_strings(self, release_frames, release_strings, self.t1, self.q1, self.p1, self.lambda0)
 
 
             # Case 3: No releases, string catches or impacts.
             elif (impact_frames and (not catch_strings)):
-                frame, impact = solve_impact(self, impact_frames)
-                impact_update(self, frame, impact['t'], impact['q'], impact['p'], impact['lam0'], impact['lam1'])
+                print 'impact',
+                frame, impact = tc.impact.solve_impact(self, impact_frames)
+                print frame, impact['t']
+                impact_update_with_strings(self, frame, impact['t'], impact['q'], impact['p'], impact['lam0'], impact['lam1'])
                 
             elif (catch_strings and (not impact_frames)):
+                print 'catch'
                 catch_time = get_catch_time(self, catch_strings)
                 solve_string_catch(self, catch_strings, catch_time)
                 
             else:
-                frame, impact = solve_impact(self, impact_frames)
+                frame, impact = tc.impact.solve_impact(self, impact_frames)
                 catch_time = get_catch_time(self, catch_strings)
 
                 if catch_time <= impact['t']:
+                    print 'catch_multiple'
                     solve_string_catch(self, catch_strings, catch_time)
 
                 else:
-                    impact_update(self, frame, impact['t'], impact['q'], impact['p'], impact['lam0'], impact['lam1'])    
+                    print 'impact multiple'
+                    impact_update_with_strings(self, frame, impact['t'], impact['q'], impact['p'],
+                                                     impact['lam0'], impact['lam1'])  
+
+
+    def prepare_to_visualize(self):
+        """ Should be called before visualizing system. It will draw the constraint(s)
+            even if there are no constrained frames at the end of the simulation. """
+        for string in self.puppet_strings:
+            if not string.active:
+                string.activate()
+        super(PuppetMVI, self).prepare_to_visualize()        
+
 

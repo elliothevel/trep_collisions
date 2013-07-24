@@ -1,4 +1,5 @@
 import trep
+from cmvi import CollisionMVI
 
 def simulate(cmvi, tf, dt, k2_func=None):
     """ Simulates the mvi to time tf with steps dt. This includes collisions. """
@@ -21,8 +22,12 @@ def simulate(cmvi, tf, dt, k2_func=None):
         else:
             k2 = k2_func(cmvi.q1, cmvi.t1)
         
-        try:            
-            cmvi.step_(cmvi.t2+dt, k2=k2)
+        try:
+            if isinstance(cmvi, CollisionMVI):
+                cmvi.step_(cmvi.t2+dt, k2=k2)
+            else:
+                cmvi.step(cmvi.t2+dt, k2=k2)
+
         except trep.ConvergenceError as e:
             print 'Convergence Error:', e.message
             print '\t\t   Ending simulaion at t=%f.' %cmvi.t1
