@@ -2,9 +2,9 @@ import numpy as np
 
 """
  The slot derivatives refer to the arguments of the discrete Lagrangian:
- L2(q1, q2, t1, t2) = dt*L((q1+q2)/2, (q2-q1)/dt, (t1+t2)/2)
+ L2(q1, q2, t1, t2) = (t2-t1)*L((q1+q2)/2, (q2-q1)/(t2-t1), (t1+t2)/2)
  and the discrete forcing:
- f2_minus(q1, q2, t1, t2) = dt*f((q1+q2)/2, (q2-q1)/dt, (t1+t2)/2).
+ f2_minus(q1, q2, t1, t2) = (t2-t1)*f((q1+q2)/2, (q2-q1)/(t2-t1), (t1+t2)/2).
 """
 
 def D1L2(mvi):
@@ -68,13 +68,25 @@ def Dh(mvi):
     dhq = np.array([[c.h_dq(q) for q in mvi.system.dyn_configs] for c in mvi.system.constraints])
     return np.reshape(dhq, (mvi.nc, mvi.nd))
 
-def phi(mvi):
-    return mvi.surface.phi()
+def phi(mvi, surfaces=[]):
+    if not surfaces:
+        return mvi._surface.phi()
+    phi_vec = []
+    for surface in surfaces:
+        phi_vec.append(surface.phi())
+    return phi_vec    
 
-def Dphi(mvi, q_i=None):
-    if q_i is not None:
-        return mvi.surface.h_dq(q_i)
-    return np.array([mvi.surface.phi_dq(q) for q in mvi.system.dyn_configs])
+def Dphi(mvi, q_i=None, surfaces=[]):
+    if not surfaces:
+        if q_i is not None:
+            return mvi._surface.h_dq(q_i)
+        return np.array([mvi._surface.phi_dq(q) for q in mvi.system.dyn_configs])
+    p = len(surfaces)
+    dphi = np.empty((p,mvi.nd))
+    for j in range(p):
+        surf = surfaces[j]
+        dphi[j] = [surfaces[j].phi_dq(q) for q in mvi.system.dyn_configs]
+    return dphi    
 
 def D2h(mvi):
     Dh = np.zeros(mvi.nc)
@@ -86,14 +98,20 @@ def D2h(mvi):
             pass
     return Dh
 
+def D1L2_lim(mvi):
+    return np.array([-mvi.system.L_ddq(q) for q in mvi.system.dyn_configs])
+
+def D2L2_lim(mvi):
+    return np.array([mvi.system.L_ddq(q) for q in mvi.system.dyn_configs])
+
 def set_system_state(mvi, i):
     """ Sets the state of sytem to either 1 or 2. """
     if i==0:
         mvi.system.set_state(q=mvi.q0, t=mvi.t0)
     if i==1:
-        mvi.system.set_state(q=mvi.q1, t=mvi.t1)
+        mvi.system.set_state(q=mvi.q1, t=mvi.t1, dq=mvi._dq1)
     if i==2:
-        mvi.system.set_state(q=mvi.q2, t=mvi.t2)     
+        mvi.system.set_state(q=mvi.q2, t=mvi.t2, dq=(mvi.q2-mvi.q1)/(mvi.t2-mvi.t1))     
     
 def save_state(mvi):
     """ Saves the integrator's states in a dictionary. """
@@ -107,4 +125,5 @@ def restore_state(mvi, state):
     """ Resets the integrator's state from a dictionary. """
     mvi.t1 = state['t1']; mvi.t2 = state['t2']
     mvi.q1 = state['q1']; mvi.q2 = state['q2']
-    mvi.p1 = state['p1']; mvi.p2 = state['p2']        
+    mvi.p1 = state['p1']; mvi.p2 = state['p2'] 
+

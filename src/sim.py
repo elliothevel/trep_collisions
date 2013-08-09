@@ -10,7 +10,7 @@ def simulate(cmvi, tf, dt, k2_func=None):
     lam = [cmvi.lambda1]
 
     # Simulation loop.
-    while cmvi.t1 < tf:
+    while cmvi.t1 < (tf-dt):
         
         # Update dynamics. 
 
@@ -24,7 +24,7 @@ def simulate(cmvi, tf, dt, k2_func=None):
         
         try:
             if isinstance(cmvi, CollisionMVI):
-                cmvi.step_(cmvi.t2+dt, k2=k2)
+                cmvi.cstep(cmvi.t2+dt, k2=k2)
             else:
                 cmvi.step(cmvi.t2+dt, k2=k2)
 

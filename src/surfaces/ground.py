@@ -1,4 +1,5 @@
 import trep
+from surface import Surface
 
 # Import the visualization module. If this fails, the constraint will not
 #   be drawn in the simulation.
@@ -9,20 +10,32 @@ try:
     _opengl = True
 except:
     _opengl = False
+  
 
-
-class GroundConstraint(trep.constraints.PointOnPlane):
-    """ Uses point on plane constraint but adds visualization. """
-    def __init__(self, system, frame, dim, lims=(-5,5)):
-        trep.constraints.PointOnPlane.__init__(self, system, system.world_frame, (0,0,-1), 
-                                      frame, name='constraint_'+frame.name)
-        self.lims = lims
+class Ground(Surface):
+    def __init__(self, system, frame, name=None, tolerance=1e-10, dim=2, lims=(-3,3)):
+        Surface.__init__(self, system, name, tolerance)
+        self.frame = frame
         self.dim = dim
+        self.lims = lims
+    
+    def phi(self):
+        return self.frame.p()[2]
+
+    def phi_dq(self, q1):
+        return self.frame.p_dq(q1)[2]
+
+    def phi_dqdq(self, q1, q2):
+        return self.frame.p_dqdq(q1, q2)[2]
+
+    def phi_dqdqdq(self, q1, q2, q3):
+        return self.frame.p_dqdqdq(q1, q2, q3)
+
+    def __repr__(self):
+        return "<Ground Surface frame=%s>" %self.frame.name
 
     if _opengl:
         def opengl_draw(self):
-            """ Draws the line for the ground in 2-D or a plane for the ground in 3-D. """
-
             if self.dim == 2:
                 glPushAttrib(GL_CURRENT_BIT | GL_LIGHTING_BIT | GL_LINE_BIT)
                 glColor3f(1.0, 0.0, 0.0)
@@ -51,27 +64,4 @@ class GroundConstraint(trep.constraints.PointOnPlane):
                 glVertex3f(x_max, y_min, 0.0)
                 glEnd()
 
-                glPopAttrib()
-    
-
-class Ground:
-    """ A common collision surface. This is a plane at z=0.  """ 
-    def __init__(self, system, tolerance=1e-10, dim=2, lims=(-3,3)):
-        self.system = system
-        self.frame = None
-        self.tolerance=tolerance
-        self.dim = dim
-        self.lims = lims
-
-    def set_frame(self, frame):
-        self.frame = self.system.get_frame(frame)
-    
-    def phi(self):
-        return self.frame.p()[2]
-
-    def phi_dq(self,q_i):
-        return self.frame.p_dq(q_i)[2]
-
-    def add_constraint_to_system(self, frame):
-        """ Adds the constraint to the system. """
-        GroundConstraint(self.system, frame, self.dim, lims=self.lims)
+                glPopAttrib() 

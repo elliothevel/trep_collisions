@@ -1,26 +1,35 @@
 from util import *
 
-
 def detect_impacts(mvi):
     """ Detects which nodes, if any, have made contact. """
     set_system_state(mvi, 2)
-    frame_list = []
-    for frame in mvi.impact_frames:
-        if frame not in mvi.constrained_frames:
-            mvi.surface.set_frame(frame)                                   
-            if phi(mvi) < 0:
-                frame_list.append(frame)                                   
-    return frame_list
-        
- 
+    impact_list = []
+    for surface in mvi.inactive_surfaces: 
+        if surface.phi() < 0:
+            impact_list.append(surface)     
+    return impact_list
+
 def detect_releases(mvi):
+    if mvi._releases_off:
+        return []
+    release_list = []
+    lam2 = mvi.lambda2c
+    for surface in mvi.active_surfaces:
+        if lam2[surface.index] < 0.0:
+            release_list.append(surface)
+    return release_list        
+
+'''
+def detect_releases2(mvi):
     """ Detects which nodes, if any, should be released. This is based
-        on a sign change in the force of constraint. """    
-    release_list   = []
-    for frame in mvi.constrained_frames:
-        con_index = mvi.system.get_constraint('constraint_'+frame.name).index
+        on a sign change in the force of constraint. """ 
+    if mvi._releases_off:
+        return []
+    release_list = []
+    for surface in mvi.active_surfaces:
+        con_index = mvi.system.get_constraint(surface).index
         if sign_change(mvi, con_index):
-            release_list += [frame]     
+            release_list.append(surface)           
     return release_list
 
 
@@ -30,4 +39,5 @@ def sign_change(mvi, i):
         return True
     if (mvi.lambda0[i] < 0) and (mvi.lambda1[i] > 0):
         return True
-    return False       
+    return False     
+'''    

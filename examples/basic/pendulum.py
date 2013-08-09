@@ -21,10 +21,10 @@ trep.potentials.Gravity(s)
 trep.forces.Damping(s, 1.0)
 
 # Define the collision surface.
-surface = tc.surfaces.Circle(s,-2, -1.7, 1)
+surface = tc.surfaces.global_surfaces(tc.surfaces.Circle, s, kwargs={'Y': -2, 'Z': -1.7, 'R': 1})
 
 # Create the variational integrator with collisions.                   
-mvi = tc.CollisionMVI(s,surface)
+mvi = tc.CollisionMVI(s, surface, release_method='interp')
 
 # Give the system some in initial conditions.
 s.get_config('theta1').q = 2.0
