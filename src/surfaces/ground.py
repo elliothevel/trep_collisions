@@ -18,6 +18,7 @@ class Ground(Surface):
         self.frame = frame
         self.dim = dim
         self.lims = lims
+        self.sign = 1.0
     
     def phi(self):
         return self.frame.p()[2]
@@ -29,7 +30,7 @@ class Ground(Surface):
         return self.frame.p_dqdq(q1, q2)[2]
 
     def phi_dqdqdq(self, q1, q2, q3):
-        return self.frame.p_dqdqdq(q1, q2, q3)
+        return self.frame.p_dqdqdq(q1, q2, q3)[2]
 
     def __repr__(self):
         return "<Ground Surface frame=%s>" %self.frame.name

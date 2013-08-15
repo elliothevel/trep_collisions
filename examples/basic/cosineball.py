@@ -1,3 +1,6 @@
+""" Not working because cosine surface not rewritten yet.
+"""
+
 import trep
 from trep import ty, tz, rx
 from trep.visual import *

@@ -33,18 +33,24 @@ class Distance(Surface):
             self.dist = dist
 
         self.dist = dist
+        self.sign = -self.sgn
 
     def __repr__(self):
         return "<Distance - frame1=%s, frame2=%s>" %(self.frame1.name, self.frame2.name)
 
+    def measure_length(self):
+        return self.tape_measure.length()
+
     def phi(self):
         if self.config:
-            return self.config.q - self.tape_measure.length()   
+            return self.sgn*(self.tape_measure.length() - self.config.q)  
         else:    
             return self.sgn*(self.tape_measure.length() - self.dist)
 
-    def phi_dq(self, q1):    
-        return self.sgn*self.tape_measure.length_dq(q1)
+    def phi_dq(self, q1):  
+        if (self.config is None) or self.config != q1:
+            return self.sgn*self.tape_measure.length_dq(q1)
+        return self.sgn*(self.tape_measure.length_dq(q1)-1)
 
     def phi_dqdq(self, q1, q2):
         return self.sgn*self.tape_measure.length_dqdq(q1, q2)

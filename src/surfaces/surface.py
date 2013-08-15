@@ -8,6 +8,7 @@ class Surface(trep.Constraint):
         self.system._constraints = self.system._constraints[:-1]
         self.system.resume_structure_changes()
         self.active = False
+        self.sgn = 0
         
     def deactivate_constraint(self):
         self.system._constraints = tuple([con for con in self.system.constraints if (con != self)]) # TUPLE!!

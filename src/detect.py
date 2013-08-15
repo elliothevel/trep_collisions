@@ -1,7 +1,7 @@
 from util import *
 
 def detect_impacts(mvi):
-    """ Detects which nodes, if any, have made contact. """
+    """ Detects which surfaces, if any, have been crossed. """
     set_system_state(mvi, 2)
     impact_list = []
     for surface in mvi.inactive_surfaces: 
@@ -14,10 +14,18 @@ def detect_releases(mvi):
         return []
     release_list = []
     lam2 = mvi.lambda2c
+    lam1 = mvi.lambda1c
     for surface in mvi.active_surfaces:
-        if lam2[surface.index] < 0.0:
+        if lam2[surface.index]*surface.sign < 0.0:
             release_list.append(surface)
-    return release_list        
+    return release_list  
+
+def sign_change(a, b):
+    if (a > 0) and (b < 0):
+        return True
+    if (a < 0) and (b > 0):
+        return True
+    return False
 
 '''
 def detect_releases2(mvi):
@@ -31,7 +39,6 @@ def detect_releases2(mvi):
         if sign_change(mvi, con_index):
             release_list.append(surface)           
     return release_list
-
 
 def sign_change(mvi, i):
     """ Returns True if the i-th constraint force has changed sign, False otherwise. """

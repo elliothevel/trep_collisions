@@ -1,10 +1,8 @@
 import trep
 from trep import tx, ty, tz, rx, ry, rz
 import trep.visual as visual
+import trep_collisions as tc
 import numpy as np
-from strings2 import PuppetString
-
-import os
 
 
 PUPPET_FRAMES = [
@@ -49,7 +47,7 @@ PUPPET_FRAMES = [
           ]]]]]],  # End of puppet definition
     
     # Define the coordinate frames for the truck that the puppet is suspended from
-    tz('Frame Z', name='Frame Plane', kinematic=True), [
+    tz(24.0, name='Frame Plane'), [
         tx( 1, name='Left Torso Spindle'),
         tx(-1, name='Right Torso Spindle'),
         tx( 1.44), [ty(-2, name='Left Arm Spindle')],
@@ -66,55 +64,56 @@ class Puppet(trep.System):
         self.import_frames(PUPPET_FRAMES)
         trep.potentials.Gravity(self)
         trep.forces.Damping(self, 0.01)
-        self.add_string_constraints(shoulders=add_strings['shoulders'], hands=add_strings['hands'], 
-                                    knees=add_strings['knees'])
+
+        self.add_string_constraints(**add_strings)
+
         self.feet_frames = [self.get_frame('Right Foot'), self.get_frame('Left Foot'),
-                           self.get_frame('Right Toe'),  self.get_frame('Left Toe')]
+                            self.get_frame('Right Toe'),  self.get_frame('Left Toe')]
 
         self.init_config(add_strings)    
               
 
-    def add_string_constraints(self, shoulders=True, hands=True, knees=True):
+    def add_string_constraints(self, shoulders=True, hands=False, knees=False):
+        """ Adds string constraints to the puppet. """
 
         strings = []
                 
         if shoulders:  
-            strings.extend([PuppetString(self, 'Left Torso Hook', 'Left Torso Spindle', 13.34),
-                            PuppetString(self, 'Right Torso Hook', 'Right Torso Spindle', 13.34)])
-            #c1 = trep.constraints.Distance(self, 'Left Torso Hook', 'Left Torso Spindle', 13.34)
-            #c2 = trep.constraints.Distance(self, 'Right Torso Hook', 'Right Torso Spinde', 13.34)
-            #strings.extend([PuppetString(c1), PuppetString(c2)])
+            strings.extend([tc.surfaces.Distance(self, 'Left Torso Hook', 'Left Torso Spindle', 'LeftShoulderString', invalid='long'),
+                            tc.surfaces.Distance(self, 'Right Torso Hook', 'Right Torso Spindle', 'RightShoulderString', invalid='long')])
 
-        if hands:    
-            strings.extend([PuppetString(self, 'Left Finger', 'Left Arm Spindle', 'string1'),
-                            PuppetString(self, 'Right Finger', 'Right Arm Spindle', 15.33)])
+        if hands: 
+            strings.extend([tc.surfaces.Distance(self, 'Left Finger', 'Left Arm Spindle', 'LeftHandString', invalid='long'),
+                            tc.surfaces.Distance(self, 'Right Finger', 'Right Arm Spindle', 'RightHandString', invalid='long')])
 
-            #c3 = trep.constraints.Distance(self, 'Left Finger', 'Left Arm Spindle',   15.33)
-            #c4 = trep.constraints.Distance(self, 'Right Finger', 'Right Arm Spindle',  15.33)
-            #strings.extend([PuppetString(c3), PuppetString(c4)])
 
         if knees:   
-            strings.extend([PuppetString(self, 'Left Knee Hook', 'Left Leg Spindle', 19.72),
-                            PuppetString(self, 'Right Knee Hook', 'Right Leg Spindle', 19.72)])
-
-            #c5 = trep.constraints.Distance(self, 'Left Knee Hook', 'Left Leg Spindle', 19.72)
-            #c6 = trep.constraints.Distance(self, 'Right Knee Hook', 'Right Leg Spindle', 19.72)
-            #strings.extend([PuppetString(c5), PuppetString(c6)])
+            strings.extend([tc.surfaces.Distance(self, 'Left Knee Hook', 'Left Leg Spindle', 'LeftKneeString', invalid='long'),
+                            tc.surfaces.Distance(self, 'Right Knee Hook', 'Right Leg Spindle', 'RightKneeString', invalid='long')])
 
         self.strings = strings
         self._structure_changed()
 
 
     def init_config(self, add_strings):
+        """ Initialzes the configuration based on number of strings. Activates the string constraints. """
+
+        q0 = {'TorsoZ': 10.0}
+                
+        if add_strings['shoulders']:        
+            q0.update({'LeftShoulderString': 13.34, 'RightShoulderString': 13.34})
+
+        # If there are strings on the hands, we want the elbows bent. Otherwise, straight at the sides.
         if add_strings['hands']:
-            th1 = -np.pi/2
-        else:
-            th1 = 0.0
-        self.q = {'Frame Z': 24.0, 'TorsoZ': 10.0, 'LElbowTheta' : th1, 'RElbowTheta' : th1, 'LHipTheta': -0.10, 'string1': 15.33}
-        #self.hold_structure_changes()
-        #for string in self.strings:
-        #    string.activate_constraint()
-        #self.resume_structure_changes()    
+            q0.update({'LElbowTheta' : -np.pi/2, 'RElbowTheta' : -np.pi/2,
+                       'LeftHandString': 15.33, 'RightHandString': 15.33})
+            
+        self.q = q0
+
+        self.hold_structure_changes()
+        for string in self.strings:
+            string.activate_constraint()
+        self.resume_structure_changes()    
         self.satisfy_constraints(keep_kinematic=True)                    
 
 

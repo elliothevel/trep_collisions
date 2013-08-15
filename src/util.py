@@ -61,6 +61,13 @@ def D2D3L2(mvi):
 		            +1.0/dt*mvi.system.L_ddqddq(q1,q2) for q2 in mvi.system.dyn_configs])
                     for q1 in mvi.system.dyn_configs])
 
+def D4D3L2(mvi):
+    dt = mvi.t2-mvi.t1
+    return 1/dt*np.dot((2*np.array([mvi.system.L_ddq(q1) for q1 in mvi.system.dyn_configs])+ 
+                       np.dot([[mvi.system.L_ddqddq(q1, q2) for q1 in mvi.system.dyn_configs]
+                                for q2 in mvi.system.dyn_configs], mvi.system.dq[:mvi.nd])),
+                       mvi.system.dq[:mvi.nd])
+
 def h(mvi):
     return np.array([c.h() for c in mvi.system.constraints])
 
@@ -86,7 +93,18 @@ def Dphi(mvi, q_i=None, surfaces=[]):
     for j in range(p):
         surf = surfaces[j]
         dphi[j] = [surfaces[j].phi_dq(q) for q in mvi.system.dyn_configs]
-    return dphi    
+    return dphi 
+
+def D2LAM2(mvi, con):
+    dt = mvi.t1-mvi.t2
+    return (mvi.system.lambda_dq(constraint=con) + 1/dt*mvi.system.lambda_ddq(constraint=con))
+
+def D4LAM2(mvi, con):
+    dt = mvi.t2-mvi.t1
+    return -1/dt*np.dot([mvi.system.lambda_ddq(constraint=con, dq1=q1) for q1 in mvi.system.dyn_configs],
+            mvi.system.dq[:mvi.nd])
+def Dq(mvi):
+    return (mvi.q2-mvi.q1)/(mvi.t2-mvi.t1)
 
 def D2h(mvi):
     Dh = np.zeros(mvi.nc)
@@ -126,4 +144,8 @@ def restore_state(mvi, state):
     mvi.t1 = state['t1']; mvi.t2 = state['t2']
     mvi.q1 = state['q1']; mvi.q2 = state['q2']
     mvi.p1 = state['p1']; mvi.p2 = state['p2'] 
+    if mvi.nc == len(state['lambda1']):
+        mvi.lambda1 = state['lambda1']
+    if mvi.nc == len(state['lambda0']):
+        mvi.lambda0 = state['lambda0']
 

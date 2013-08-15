@@ -22,9 +22,9 @@ class CircleConstraint2(trep.Constraint):
         self.R = R
         self.frame = frame
 
-    def __repr__(self):
-        return "<CircleConstraint %s Y=%f Z=%f R=%f>" %(
-                self.frame.name, self.Y, self.Z, self.R)
+    #def __repr__(self):
+    #    return "<CircleConstraint %s Y=%f Z=%f R=%f>" %(
+    #            self.frame.name, self.Y, self.Z, self.R)
 
     def h(self):
         y, z = self.frame.p()[1:3]
@@ -115,8 +115,8 @@ class Circle(Surface):
         return 2.0*(dy23*dy1+dy1*dy13+dy3*dy12+(y-self.Y)*dy123+
                   dz23*dz1+dz2*dz13+dz3*dz12+(z-self.Z)*dz123) 
 
-    def __repr__(self):
-        return "<Circle Surface frame=%s>" %self.frame.name
+    #def __repr__(self):
+    #    return "<Circle Surface frame=%s>" %self.frame.name
 
     if _opengl:
         def opengl_draw(self):

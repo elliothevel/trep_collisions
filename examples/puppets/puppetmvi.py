@@ -1,105 +1,65 @@
 import trep_collisions as tc
-from strings import *
+import time
 
 
 class PuppetMVI(tc.CollisionMVI):
-    """ This is a midpoint variational integrator + collision solver
-        that also handles puppet strings. 
+    """ A type of collision integrator that handles string constraints
+        in a special way.
     """
 
-    def __init__(self, system, surface, impact_frames=None, puppet_strings=[], tolerance=1e-10):
-        tc.CollisionMVI.__init__(self, system, surface, impact_frames, 
-                                 tolerance=tolerance, root_solve=False, cor=0.0)
+    def __init__(self, system, collision_surfaces=[], puppet_strings=[], **kwargs):
+        surfaces = collision_surfaces + puppet_strings
+        tc.CollisionMVI.__init__(self, system, surfaces, **kwargs)
+        self._strings = puppet_strings
+        self._start = time.time()
 
-        self.puppet_strings = puppet_strings
-          
-        if impact_frames is None:
-            self.impact_frames = system.masses
-        else:
-            self.impact_frames = impact_frames  
-              
+    @property
+    def active_strings(self):
+        return [string for string in self._strings if string.active]
 
-    def step_(self, t2, k2=tuple(), max_iterations=200, q2_hint=None,
-              lambda1_hint=None, verbose=False):
-        """ Steps the system from t1 --> t2. """
-        # First have trep step the normal mvi.
-        self.lambda0 = self.lambda1
-        self.t0 = self.t1
-        self.q0 = self.q1
-        self.p0 = self.p1
-        self.step(t2, k2=k2, q2_hint=q2_hint, lambda1_hint=lambda1_hint)
+    @property
+    def inactive_strings(self):
+        return [string for string in self._strings if not string.active] 
 
-        # Then solve for a new state (q2, p2) consistent with the impact surface.
-        self.solve_collisions(self.t2)
+    def release_all_strings(self):
+        tc.release.remove_constraints(self, self.active_strings)
+
+    def add_all_strings(self):
+        tc.impact.add_constraints(self, self.inactive_strings)
+
+    def check_string_lengths(self):
+        return [s.h() for s in self.inactive_strings]
+
+    def release_all_contacts(self):
+        contacts = [surf for surf in self.active_surfaces if (surf not in self._strings)]
+        tc.release.remove_constraints(self, contacts)
+
+    def cstep(self, *args, **kwargs):
+        start = time.time()
+        super(PuppetMVI, self).cstep(*args, **kwargs)
+        print 't=%f, steptime=%f, cumtime=%f' %(self.t2, time.time()-start, time.time()-self._start)
+
+    def impact_update(self, impact_surfaces, impact_state):
+        """ This method overrides the one from the normal CMVI. The difference is that the 
+            string constraints are by default deactivated for the impact updates.
+        """   
+        self.release_all_strings()
+
+        # Set system config to impact config.
+        self.set_single_state(2, impact_state['t'], impact_state['q'], impact_state['p'])
+        self.tau2 = impact_state['tau']
+
+        # Apply the impact map.
+        next_state = tc.impact.plastic_impact(self, impact_surfaces) 
+
+        # Add the constraints to the system.
+        tc.impact.add_constraints(self, impact_surfaces)
+
+        # Add strings back.
+        add_strings = []
+        for s in self._strings:
+            if s not in impact_surfaces:
+                if s.h()<0:
+                    add_strings.append(s)
+        tc.impact.add_constraints(self, add_strings)      
     
-
-    def solve_collisions(self, t2):
-        """ Checks for impacts or releases and updates state 2 if necessary. """
-        self.t_end = t2  
-        self.qk_end = self.q2[self.nd:]  
-
-        # Loop until an acceptable state is found.
-        while True:
-
-            # Check if any events have occurred.
-            impact_frames   = tc.detect.detect_impacts(self)
-            release_frames  = tc.detect.detect_releases(self)
-            catch_strings   = detect_string_catches(self)
-            release_strings = detect_string_releases(self)
-
-            # Case 1: no events, return with the current state.
-            if  ((not release_frames) and (not impact_frames)
-                 and (not catch_strings) and (not release_strings)):
-                print self.lambda1
-                return    
-
-            # Case 2: One or more releases.    
-
-            # For the PuppetMVI, release root-solving is turned off. This means all releases will
-            # occur at t1. Thus, if we have any releases, handle them first.
-            if (release_frames or release_strings):
-                print 'release',#, release_frames, release_strings
-                if release_frames:
-                    print 'frames', release_frames,
-                if release_strings:
-                    print 'strings',
-                print 
-                print self.lambda1, self.t1
-                release_update_with_strings(self, release_frames, release_strings, self.t1, self.q1, self.p1, self.lambda0)
-
-
-            # Case 3: No releases, string catches or impacts.
-            elif (impact_frames and (not catch_strings)):
-                print 'impact',
-                frame, impact = tc.impact.solve_impact(self, impact_frames)
-                print frame, impact['t']
-                impact_update_with_strings(self, frame, impact['t'], impact['q'], impact['p'], impact['lam0'], impact['lam1'])
-                
-            elif (catch_strings and (not impact_frames)):
-                print 'catch'
-                catch_time = get_catch_time(self, catch_strings)
-                solve_string_catch(self, catch_strings, catch_time)
-                
-            else:
-                frame, impact = tc.impact.solve_impact(self, impact_frames)
-                catch_time = get_catch_time(self, catch_strings)
-
-                if catch_time <= impact['t']:
-                    print 'catch_multiple'
-                    solve_string_catch(self, catch_strings, catch_time)
-
-                else:
-                    print 'impact multiple'
-                    impact_update_with_strings(self, frame, impact['t'], impact['q'], impact['p'],
-                                                     impact['lam0'], impact['lam1'])  
-
-
-    def prepare_to_visualize(self):
-        """ Should be called before visualizing system. It will draw the constraint(s)
-            even if there are no constrained frames at the end of the simulation. """
-        for string in self.puppet_strings:
-            if not string.active:
-                string.activate()
-        super(PuppetMVI, self).prepare_to_visualize()        
-
-
